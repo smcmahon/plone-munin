@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
 # munin plugin to gather resident-size for
-# all specified user ids. Specify ids below
-# in a comma-separated list (no spaces).
+# all specified user ids.
 
-users = 'plone,zope'
-
-import sys
+import os
 import re
+import sys
 import subprocess
 
-ps_command = 'ps -o rss= -o command= -U %s' % users
+users = os.environ.get('users') or 'plone,zope'
+category = os.environ.get('category') or 'plone'
+
+ps_command = 'ps -ww -o rss= -o command= -U %s' % users
+# print ps_command
 command_re = re.compile(r'\s(\S+)(\.conf| fg)')
 pid_split = re.compile(r'^(\d+) +(.+)$')
 
@@ -18,7 +20,7 @@ config = len(sys.argv) > 1 and sys.argv[1].lower() == 'config'
 if config:
     print "graph_title %s process memory" % users
     print "graph_vlabel MB"
-    print "graph_category plone"
+    print "graph_category %s" % category
     print "graph_scale no"
 
 ps_out = subprocess.Popen(
@@ -40,11 +42,12 @@ for line in ps_out.split('\n'):
                 ).replace('_zope', ''
                 ).replace('zeo_', ''
                 ).replace('zeocluster_', ''
-                ).strip('_'
+                ).replace('bin_', ''
                 ).replace('var_db_', ''
                 ).replace('opt_', ''
+                ).replace('local_', ''
                 ).replace('.', ''
-                ).replace('_', ''
+                ).strip('_'
                 ).lower()
             if config:
                 print "%s.label %s" % (cstr, cstr)
